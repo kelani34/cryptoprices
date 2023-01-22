@@ -1,16 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import CoinsSummary from "./components/CoinsSummary";
+import { Coins } from "./types/Types";
 
-export type Coins = {
-  ath: number;
-  atl: number;
-  current_price: number;
-  id: string;
-  name: string;
-  symbol: string;
-  high_24h: number;
-  low_24h: number;
-};
 function App() {
   const [coins, setCoins] = useState<Coins[] | null>();
   useEffect(() => {
@@ -25,9 +17,7 @@ function App() {
     <div className="App">
       {coins
         ? coins.map((coin) => {
-            return (
-              <p>{`${coin.name} | ${coin.symbol} | ${coin.current_price} `}</p>
-            );
+            return <CoinsSummary coin={coin} />;
           })
         : null}
     </div>
