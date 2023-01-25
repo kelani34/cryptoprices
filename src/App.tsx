@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import CoinsSummary from "./components/CoinsSummary";
 import { Coins } from "./types/Types";
-
-import React from "react";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,7 +13,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Line } from "react-chartjs-2";
+import { ChartData, ChartOptions } from "chart.js";
 
 ChartJS.register(
   CategoryScale,
@@ -26,42 +25,22 @@ ChartJS.register(
   Legend
 );
 
-export const options = {
-  responsive: true,
-  plugins: {
-    legend: {
-      position: "top" as const,
-    },
-    title: {
-      display: true,
-      text: "Chart.js Line Chart",
-    },
-  },
-};
-
-const labels = ["January", "February", "March", "April", "May", "June", "July"];
-
-export const data = {
-  labels,
-  datasets: [
-    {
-      label: "Dataset 1",
-      data: labels.map(() => faker.datatype.number({ min: -1000, max: 1000 })),
-      borderColor: "rgb(255, 99, 132)",
-      backgroundColor: "rgba(255, 99, 132, 0.5)",
-    },
-    {
-      label: "Dataset 2",
-      data: labels.map(() => faker.datatype.number({ min: -1000, max: 1000 })),
-      borderColor: "rgb(53, 162, 235)",
-      backgroundColor: "rgba(53, 162, 235, 0.5)",
-    },
-  ],
-};
-
 function App() {
   const [coins, setCoins] = useState<Coins[] | null>();
   const [selected, setSelected] = useState<Coins | null>();
+  const [data, setData] = useState<ChartData<"line">>();
+  const [options, setOptions] = useState<ChartOptions<"line">>({
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+      title: {
+        display: true,
+        text: "Chart.js Line Chart",
+      },
+    },
+  });
   useEffect(() => {
     const url =
       "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false";
@@ -77,6 +56,25 @@ function App() {
           onChange={(e) => {
             const c = coins?.find((x) => x.id === e.target.value);
             setSelected(c);
+            axios
+              .get(
+                `https://api.coingecko.com/api/v3/coins/${c?.id}/market_chart?vs_currency=usd&days=30
+            `
+              )
+              .then((res) => {
+                console.log(res.data);
+                setData({
+                  labels: res.data.prices.map((x: number[]) => x[0]),
+                  datasets: [
+                    {
+                      label: "Dataset 1",
+                      data: res.data.prices.map((x: number[]) => x[1]),
+                      borderColor: "rgb(255, 99, 132)",
+                      backgroundColor: "rgba(255, 99, 132, 0.5)",
+                    },
+                  ],
+                });
+              });
           }}
           defaultValue="default"
         >
@@ -85,7 +83,6 @@ function App() {
             ? coins.map((coin) => {
                 return (
                   <option key={coin.id} value={coin.id}>
-                    {" "}
                     {coin.name}
                   </option>
                 );
@@ -94,6 +91,11 @@ function App() {
         </select>
       </div>
       {selected ? <CoinsSummary coin={selected} /> : null}
+      {data ? (
+        <div style={{ width: "700px" }}>
+          <Line data={data} options={options} />
+        </div>
+      ) : null}
     </>
   );
 }
