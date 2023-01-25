@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { AppProp } from "../types/Types";
 
-const CoinsSummary = ({ coin }: AppProp): JSX.Element => {
-  const [amount, setAmount] = useState<number>(0);
+const CoinsSummary = ({ coin, updateOwned }: AppProp): JSX.Element => {
+  const [amount, setAmount] = useState<number>(NaN);
 
   useEffect(() => {
     console.log(coin.name + " set amount", amount);
@@ -14,13 +14,20 @@ const CoinsSummary = ({ coin }: AppProp): JSX.Element => {
         style={{ margin: "10px" }}
         type="number"
         value={amount}
-        onChange={(e) => setAmount(parseInt(e.target.value))}
+        onChange={(e) => {
+          setAmount(parseFloat(e.target.value));
+          //set state coming from parent
+          updateOwned(coin, parseFloat(e.target.value));
+        }}
       />
       <p>
-        {(coin.current_price * amount).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
+        {isNaN(amount)
+          ? "$0"
+          : "$" +
+            (coin.current_price * amount).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
       </p>
     </div>
   );
