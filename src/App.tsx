@@ -14,7 +14,7 @@ import {
   Legend,
 } from "chart.js";
 import { ChartData, ChartOptions } from "chart.js";
-
+import moment from "moment";
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -29,18 +29,8 @@ function App() {
   const [coins, setCoins] = useState<Coins[] | null>();
   const [selected, setSelected] = useState<Coins | null>();
   const [data, setData] = useState<ChartData<"line">>();
-  const [options, setOptions] = useState<ChartOptions<"line">>({
-    responsive: true,
-    plugins: {
-      legend: {
-        position: "top" as const,
-      },
-      title: {
-        display: true,
-        text: "Chart.js Line Chart",
-      },
-    },
-  });
+  const [range, setRange] = useState<number>(30);
+  const [options, setOptions] = useState<ChartOptions<"line">>({});
   useEffect(() => {
     const url =
       "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false";
@@ -49,6 +39,47 @@ function App() {
       setCoins(res.data);
     });
   }, []);
+
+  useEffect(() => {
+    axios
+      .get(
+        `https://api.coingecko.com/api/v3/coins/${
+          selected?.id
+        }/market_chart?vs_currency=usd&days=${range}&interval=${
+          range === 1 ? "hourly" : "daily"
+        }
+            `
+      )
+      .then((res) => {
+        setData({
+          labels: res.data.prices.map((x: number[]) =>
+            moment.unix(x[0] / 1000).format(range === 1 ? "HH:MM" : "MM-DD")
+          ),
+          datasets: [
+            {
+              label: "Dataset 1",
+              data: res.data.prices.map((x: number[]) => x[1]),
+              borderColor: "rgb(255, 99, 132)",
+              backgroundColor: "rgba(255, 99, 132, 0.5)",
+            },
+          ],
+        });
+      });
+    setOptions({
+      responsive: true,
+      plugins: {
+        legend: {
+          display: false,
+        },
+        title: {
+          display: true,
+          text: `Last price of ${selected?.id} in the last ${
+            range === 1 ? " 24 Hours" : `${range} Days`
+          }`,
+        },
+      },
+    });
+  }, [selected, range]);
   return (
     <>
       <div className="App">
@@ -56,25 +87,6 @@ function App() {
           onChange={(e) => {
             const c = coins?.find((x) => x.id === e.target.value);
             setSelected(c);
-            axios
-              .get(
-                `https://api.coingecko.com/api/v3/coins/${c?.id}/market_chart?vs_currency=usd&days=30
-            `
-              )
-              .then((res) => {
-                console.log(res.data);
-                setData({
-                  labels: res.data.prices.map((x: number[]) => x[0]),
-                  datasets: [
-                    {
-                      label: "Dataset 1",
-                      data: res.data.prices.map((x: number[]) => x[1]),
-                      borderColor: "rgb(255, 99, 132)",
-                      backgroundColor: "rgba(255, 99, 132, 0.5)",
-                    },
-                  ],
-                });
-              });
           }}
           defaultValue="default"
         >
@@ -89,10 +101,20 @@ function App() {
               })
             : null}
         </select>
+        <select
+          onChange={(e) => {
+            setRange(parseInt(e.target.value));
+          }}
+          defaultValue="30"
+        >
+          <option value={30}>30 days</option>
+          <option value={7}>7 days </option>
+          <option value={1}> 1 day</option>
+        </select>
       </div>
       {selected ? <CoinsSummary coin={selected} /> : null}
       {data ? (
-        <div style={{ width: "700px" }}>
+        <div>
           <Line data={data} options={options} />
         </div>
       ) : null}
